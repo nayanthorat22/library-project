@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - LibriCore{% endblock %}
+
+{% block content %}
+<!-- Welcome Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Hello, {{ current_user.name }}! 👋</h2>
+        <p class="text-muted mb-0">Track your borrowed books, upcoming due dates, and reading status.</p>
+    </div>
+    <div>
+        <a href="{{ url_for('main.catalog') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Explore Catalog
+        </a>
+    </div>
+</div>
+
+<!-- Stats Metric Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-primary p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white-50 small text-uppercase fw-bold">Currently Issued</h6>
+                    <h3 class="fw-bold mb-0">{{ active_loans_count }} / {{ settings.max_borrow_limit }}</h3>
+                </div>
+                <i class="bi bi-book stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-success p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white-50 small text-uppercase fw-bold">Books Returned</h6>
+                    <h3 class="fw-bold mb-0">{{ returned_loans_count }}</h3>
+                </div>
+                <i class="bi bi-check2-circle stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card {% if overdue_count > 0 %}bg-danger{% else %}bg-secondary{% endif %} p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white-50 small text-uppercase fw-bold">Overdue Books</h6>
+                    <h3 class="fw-bold mb-0">{{ overdue_count }}</h3>
+                </div>
+                <i class="bi bi-alarm stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card {% if total_outstanding_fine > 0 %}bg-warning text-dark{% else %}bg-info text-white{% endif %} p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="{% if total_outstanding_fine > 0 %}text-dark{% else %}text-white-50{% endif %} small text-uppercase fw-bold">Outstanding Fine</h6>
+                    <h3 class="fw-bold mb-0">₹{{ "%.2f"|format(total_outstanding_fine) }}</h3>
+                </div>
+                <i class="bi bi-cash-coin stat-icon"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Issued Books Section -->
+<div class="card custom-card mb-4">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-bookmark-check me-2"></i>Currently Issued Books</h5>
+        <span class="badge bg-primary-subtle text-primary border">{{ active_loans|length }} Active</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Book Title & Author</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Fine Accrued</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in active_loans %}
+                    {% set current_fine = loan.calculate_current_fine(settings.daily_fine_rate) %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('main.book_detail', book_id=loan.book.id) }}" class="fw-bold text-decoration-none text-dark d-block">
+                                {{ loan.book.title }}
+                            </a>
+                            <small class="text-muted">by {{ loan.book.author }} &middot; ISBN: {{ loan.book.isbn }}</small>
+                        </td>
+                        <td>{{ loan.issue_date.strftime("%d %b %Y") }}</td>
+                        <td>
+                            <span class="{% if loan.is_overdue %}text-danger fw-bold{% endif %}">
+                                {{ loan.due_date.strftime("%d %b %Y") }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if loan.is_overdue %}
+                                <span class="badge badge-overdue"><i class="bi bi-exclamation-triangle me-1"></i>Overdue ({{ loan.overdue_days }}d)</span>
+                            {% else %}
+                                <span class="badge badge-issued"><i class="bi bi-clock me-1"></i>Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if current_fine > 0 %}
+                                <span class="text-danger fw-bold">₹{{ "%.2f"|format(current_fine) }}</span>
+                            {% else %}
+                                <span class="text-success small">₹0.00</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <form method="POST" action="{{ url_for('student.return_book', loan_id=loan.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-success btn-sm fw-semibold"
+                                        data-confirm="Are you sure you want to return '{{ loan.book.title }}'?">
+                                    <i class="bi bi-arrow-return-left me-1"></i>Return Book
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            You do not have any books currently checked out.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Borrowing Activity -->
+<div class="card custom-card">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-secondary"></i>Recent Borrowing Activity</h5>
+        <a href="{{ url_for('student.history') }}" class="btn btn-sm btn-outline-secondary">View Full History &rarr;</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Book</th>
+                        <th>Issued On</th>
+                        <th>Returned On</th>
+                        <th>Status</th>
+                        <th>Fine</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in recent_loans %}
+                    <tr>
+                        <td class="fw-semibold">{{ loan.book.title }}</td>
+                        <td>{{ loan.issue_date.strftime("%d %b %Y") }}</td>
+                        <td>{{ loan.return_date.strftime("%d %b %Y") if loan.return_date else "—" }}</td>
+                        <td>
+                            {% if loan.status == 'returned' %}
+                                <span class="badge badge-returned">Returned</span>
+                            {% elif loan.is_overdue %}
+                                <span class="badge badge-overdue">Overdue</span>
+                            {% else %}
+                                <span class="badge badge-issued">Issued</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if loan.calculated_fine > 0 %}
+                                <span class="text-danger fw-bold">₹{{ "%.2f"|format(loan.calculated_fine) }}</span>
+                                {% if loan.fine_paid %}
+                                    <span class="badge bg-success small ms-1">Paid</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark small ms-1">Unpaid</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">₹0.00</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No borrowing history yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

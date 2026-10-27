@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Books - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-journals text-primary me-2"></i>Book Inventory</h2>
+        <p class="text-muted mb-0">Add, edit, check stock, and manage library titles.</p>
+    </div>
+    <div>
+        <a href="{{ url_for('admin.add_book') }}" class="btn btn-primary fw-semibold">
+            <i class="bi bi-plus-lg me-1"></i>Add New Book
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card custom-card p-3 mb-4">
+    <form method="GET" action="{{ url_for('admin.manage_books') }}" class="row g-2">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by title, author, or ISBN...">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="category" class="form-select">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100">Filter</button>
+            <a href="{{ url_for('admin.manage_books') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Books Table -->
+<div class="card custom-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Book Information</th>
+                        <th>Category</th>
+                        <th>ISBN</th>
+                        <th>Year</th>
+                        <th>Stock (Available/Total)</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for book in books %}
+                    <tr>
+                        <td>
+                            <span class="fw-bold text-dark d-block">{{ book.title }}</span>
+                            <small class="text-muted">{{ book.author }}</small>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ book.category }}</span></td>
+                        <td><code>{{ book.isbn }}</code></td>
+                        <td>{{ book.publication_year or '—' }}</td>
+                        <td>
+                            <span class="fw-bold {% if book.available_copies > 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ book.available_copies }}
+                            </span> / {{ book.total_copies }}
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('admin.edit_book', book_id=book.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('admin.delete_book', book_id=book.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                        data-confirm="Delete '{{ book.title }}'? Note: Active loans will block deletion." title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No books found in catalogue.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('admin.manage_books', page=pagination.prev_num, q=query, category=category) }}">&laquo;</a></li>
+        {% endif %}
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.manage_books', page=p, q=query, category=category) }}">{{ p }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('admin.manage_books', page=pagination.next_num, q=query, category=category) }}">&raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

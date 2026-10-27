@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Library Rules & Settings - Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card custom-card p-4">
+            <div class="d-flex align-items-center mb-4 border-bottom pb-3">
+                <i class="bi bi-sliders text-warning fs-2 me-3"></i>
+                <div>
+                    <h3 class="fw-bold mb-0">Library Configuration</h3>
+                    <p class="text-muted small mb-0">Configure borrowing durations, fine rates, and holding allowances.</p>
+                </div>
+            </div>
+
+            <form method="POST">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.borrow_duration_days.label(class="form-label fw-semibold") }}
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+                        {{ form.borrow_duration_days(class="form-control" + (" is-invalid" if form.borrow_duration_days.errors else "")) }}
+                        <span class="input-group-text">Days</span>
+                    </div>
+                    <small class="text-muted">Standard number of days a book can be checked out before late fines begin.</small>
+                    {% for error in form.borrow_duration_days.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.daily_fine_rate.label(class="form-label fw-semibold") }}
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-currency-rupee"></i></span>
+                        {{ form.daily_fine_rate(class="form-control" + (" is-invalid" if form.daily_fine_rate.errors else "")) }}
+                        <span class="input-group-text">per day</span>
+                    </div>
+                    <small class="text-muted">Charge accrued per calendar day for each overdue book.</small>
+                    {% for error in form.daily_fine_rate.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-4">
+                    {{ form.max_borrow_limit.label(class="form-label fw-semibold") }}
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-book"></i></span>
+                        {{ form.max_borrow_limit(class="form-control" + (" is-invalid" if form.max_borrow_limit.errors else "")) }}
+                        <span class="input-group-text">Books max</span>
+                    </div>
+                    <small class="text-muted">Maximum number of active borrowed books allowed per student simultaneously.</small>
+                    {% for error in form.max_borrow_limit.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-grid">
+                    {{ form.submit(class="btn btn-primary btn-lg fw-semibold") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

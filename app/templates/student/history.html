@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}My Borrowing History - LibriCore{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col-md-6">
+        <h2 class="fw-bold mb-1"><i class="bi bi-clock-history text-primary me-2"></i>My Borrowing History</h2>
+        <p class="text-muted mb-0">Complete historical records of all books borrowed and returned</p>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('student.history', status='all') }}" class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
+            <a href="{{ url_for('student.history', status='active') }}" class="btn btn-sm {% if status_filter == 'active' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Active</a>
+            <a href="{{ url_for('student.history', status='returned') }}" class="btn btn-sm {% if status_filter == 'returned' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Returned</a>
+            <a href="{{ url_for('student.history', status='overdue') }}" class="btn btn-sm {% if status_filter == 'overdue' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Overdue</a>
+        </div>
+    </div>
+</div>
+
+<div class="card custom-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Book Title</th>
+                        <th>Issued On</th>
+                        <th>Due Date</th>
+                        <th>Returned On</th>
+                        <th>Status</th>
+                        <th>Overdue Days</th>
+                        <th>Fine Amount</th>
+                        <th>Payment Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in loans %}
+                    {% set fine = loan.calculated_fine if loan.status == 'returned' else loan.calculate_current_fine(daily_fine_rate) %}
+                    <tr>
+                        <td>
+                            <span class="fw-bold text-dark">{{ loan.book.title }}</span>
+                            <small class="text-muted d-block">{{ loan.book.author }}</small>
+                        </td>
+                        <td>{{ loan.issue_date.strftime("%d %b %Y") }}</td>
+                        <td>{{ loan.due_date.strftime("%d %b %Y") }}</td>
+                        <td>{{ loan.return_date.strftime("%d %b %Y") if loan.return_date else "—" }}</td>
+                        <td>
+                            {% if loan.status == 'returned' %}
+                                <span class="badge badge-returned">Returned</span>
+                            {% elif loan.is_overdue %}
+                                <span class="badge badge-overdue">Overdue</span>
+                            {% else %}
+                                <span class="badge badge-issued">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if loan.overdue_days > 0 %}
+                                <span class="text-danger fw-semibold">{{ loan.overdue_days }} days</span>
+                            {% else %}
+                                <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if fine > 0 %}
+                                <span class="text-danger fw-bold">₹{{ "%.2f"|format(fine) }}</span>
+                            {% else %}
+                                <span class="text-muted">₹0.00</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if fine > 0 %}
+                                {% if loan.fine_paid %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Unpaid</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">No records found for the selected filter.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<nav class="mt-4" aria-label="History pagination">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('student.history', page=pagination.prev_num, status=status_filter) }}">&laquo; Prev</a></li>
+        {% endif %}
+
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+                {% if p == pagination.page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('student.history', page=p, status=status_filter) }}">{{ p }}</a></li>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('student.history', page=pagination.next_num, status=status_filter) }}">Next &raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} - LibriCore{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.catalog') }}">Catalog</a></li>
+                <li class="breadcrumb-item active">{{ book.title }}</li>
+            </ol>
+        </nav>
+
+        <div class="card custom-card p-4">
+            <div class="row g-4">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-secondary">{{ book.category }}</span>
+                        {% if book.is_available %}
+                            <span class="badge badge-available">In Stock ({{ book.available_copies }} available)</span>
+                        {% else %}
+                            <span class="badge badge-out-of-stock">Currently Unavailable</span>
+                        {% endif %}
+                    </div>
+
+                    <h2 class="fw-bold text-primary mb-1">{{ book.title }}</h2>
+                    <h5 class="text-muted mb-4">Written by <span class="text-dark fw-semibold">{{ book.author }}</span></h5>
+
+                    <h6 class="fw-bold text-uppercase text-secondary small">Description / Overview</h6>
+                    <p class="text-secondary leading-relaxed mb-4">
+                        {{ book.description or "No synopsis or detailed description has been provided for this book yet." }}
+                    </p>
+
+                    <div class="row g-3 bg-light p-3 rounded-3 mb-4">
+                        <div class="col-sm-4">
+                            <span class="text-muted small d-block">ISBN</span>
+                            <span class="fw-bold text-dark">{{ book.isbn }}</span>
+                        </div>
+                        <div class="col-sm-4">
+                            <span class="text-muted small d-block">Publication Year</span>
+                            <span class="fw-bold text-dark">{{ book.publication_year or 'Unknown' }}</span>
+                        </div>
+                        <div class="col-sm-4">
+                            <span class="text-muted small d-block">Total Inventory</span>
+                            <span class="fw-bold text-dark">{{ book.total_copies }} copies</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Sidebar -->
+                <div class="col-md-4">
+                    <div class="card border p-3 rounded-3 bg-light-subtle">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-clock-history me-2 text-primary"></i>Borrowing Rules</h5>
+                        <ul class="list-unstyled small mb-4">
+                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Borrow period: <strong>{{ settings.borrow_duration_days }} days</strong></li>
+                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Max limit: <strong>{{ settings.max_borrow_limit }} books</strong> per user</li>
+                            <li class="mb-2"><i class="bi bi-exclamation-circle-fill text-warning me-2"></i>Late fine: <strong>₹{{ "%.2f"|format(settings.daily_fine_rate) }}/day</strong> after due date</li>
+                        </ul>
+
+                        {% if current_user.is_authenticated %}
+                            {% if not current_user.is_admin %}
+                                {% if book.is_available %}
+                                    <form method="POST" action="{{ url_for('student.issue_book', book_id=book.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm"
+                                                data-confirm="Issue this book for {{ settings.borrow_duration_days }} days?">
+                                            <i class="bi bi-bookmark-plus me-1"></i>Issue This Book
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <button class="btn btn-secondary w-100 py-2" disabled>
+                                        <i class="bi bi-x-circle me-1"></i>Out of Stock
+                                    </button>
+                                    <small class="text-muted d-block text-center mt-2">All copies are currently borrowed.</small>
+                                {% endif %}
+                            {% else %}
+                                <a href="{{ url_for('admin.edit_book', book_id=book.id) }}" class="btn btn-warning w-100 py-2 fw-semibold">
+                                    <i class="bi bi-pencil me-1"></i>Edit Book (Admin)
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <a href="{{ url_for('auth.login', next=request.path) }}" class="btn btn-primary w-100 py-2 fw-semibold">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>Login to Borrow
+                            </a>
+                            <small class="text-muted d-block text-center mt-2">Registration is free for all students.</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

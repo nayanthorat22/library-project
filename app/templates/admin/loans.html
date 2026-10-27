@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Loans & Fines - Admin{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col-md-6">
+        <h2 class="fw-bold mb-1"><i class="bi bi-arrow-left-right text-primary me-2"></i>Borrowing Records & Fines</h2>
+        <p class="text-muted mb-0">Monitor active loans, confirm book returns, and track fine payments.</p>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('admin.manage_loans', status='all') }}" class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
+            <a href="{{ url_for('admin.manage_loans', status='active') }}" class="btn btn-sm {% if status_filter == 'active' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Active</a>
+            <a href="{{ url_for('admin.manage_loans', status='returned') }}" class="btn btn-sm {% if status_filter == 'returned' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Returned</a>
+            <a href="{{ url_for('admin.manage_loans', status='overdue') }}" class="btn btn-sm {% if status_filter == 'overdue' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Overdue</a>
+        </div>
+    </div>
+</div>
+
+<div class="card custom-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Student Details</th>
+                        <th>Book</th>
+                        <th>Issue / Due Date</th>
+                        <th>Status</th>
+                        <th>Overdue</th>
+                        <th>Fine Amount</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in loans %}
+                    {% set fine = loan.calculated_fine if loan.status == 'returned' else loan.calculate_current_fine(daily_fine_rate) %}
+                    <tr>
+                        <td>
+                            <span class="fw-bold text-dark d-block">{{ loan.user.name }}</span>
+                            <small class="text-muted">{{ loan.user.email }}</small>
+                        </td>
+                        <td>
+                            <span class="fw-semibold">{{ loan.book.title }}</span>
+                            <small class="text-muted d-block">ISBN: {{ loan.book.isbn }}</small>
+                        </td>
+                        <td>
+                            <div><i class="bi bi-box-arrow-up-right me-1 text-muted"></i>{{ loan.issue_date.strftime("%d %b %Y") }}</div>
+                            <div class="{% if loan.is_overdue %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                                <i class="bi bi-calendar-check me-1"></i>Due: {{ loan.due_date.strftime("%d %b %Y") }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if loan.status == 'returned' %}
+                                <span class="badge badge-returned">Returned</span>
+                                <small class="text-muted d-block">{{ loan.return_date.strftime("%d %b %Y") }}</small>
+                            {% elif loan.is_overdue %}
+                                <span class="badge badge-overdue">Overdue</span>
+                            {% else %}
+                                <span class="badge badge-issued">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if loan.overdue_days > 0 %}
+                                <span class="text-danger fw-bold">{{ loan.overdue_days }}d</span>
+                            {% else %}
+                                <span class="text-muted">0d</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if fine > 0 %}
+                                <span class="text-danger fw-bold">₹{{ "%.2f"|format(fine) }}</span>
+                                {% if loan.fine_paid %}
+                                    <span class="badge bg-success small d-block mt-1">Paid</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark small d-block mt-1">Unpaid</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">₹0.00</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end gap-1">
+                                {% if loan.status == 'issued' %}
+                                <form method="POST" action="{{ url_for('admin.process_admin_return', loan_id=loan.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" 
+                                            data-confirm="Confirm return for '{{ loan.book.title }}'?">
+                                        <i class="bi bi-arrow-return-left me-1"></i>Return
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                {% if fine > 0 and not loan.fine_paid %}
+                                <form method="POST" action="{{ url_for('admin.mark_fine_paid', loan_id=loan.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary"
+                                            data-confirm="Mark fine of ₹{{ '%.2f'|format(fine) }} as paid for {{ loan.user.name }}?">
+                                        <i class="bi bi-cash-coin me-1"></i>Pay Fine
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No loans found for this criteria.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('admin.manage_loans', page=pagination.prev_num, status=status_filter) }}">&laquo;</a></li>
+        {% endif %}
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.manage_loans', page=p, status=status_filter) }}">{{ p }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('admin.manage_loans', page=pagination.next_num, status=status_filter) }}">&raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

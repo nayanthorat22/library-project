@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Create an Account - LibriCore{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card custom-card p-4">
+            <div class="text-center mb-4">
+                <i class="bi bi-person-plus text-primary fs-1"></i>
+                <h3 class="fw-bold mt-2">Create Student Account</h3>
+                <p class="text-muted small">Register to start borrowing books from the library catalogue</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('auth.register') }}">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label fw-semibold") }}
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="John Doe") }}
+                    </div>
+                    {% for error in form.name.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.email.label(class="form-label fw-semibold") }}
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="john@example.com") }}
+                    </div>
+                    {% for error in form.email.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        {{ form.password.label(class="form-label fw-semibold") }}
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Min 6 characters") }}
+                        </div>
+                        {% for error in form.password.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        {{ form.confirm_password.label(class="form-label fw-semibold") }}
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
+                            {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Confirm password") }}
+                        </div>
+                        {% for error in form.confirm_password.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="d-grid mb-3">
+                    {{ form.submit(class="btn btn-warning btn-lg fw-semibold") }}
+                </div>
+            </form>
+
+            <div class="text-center border-top pt-3">
+                <p class="small text-muted mb-0">Already registered? <a href="{{ url_for('auth.login') }}" class="text-primary fw-bold text-decoration-none">Log in here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

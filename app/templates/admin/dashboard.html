@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Overview - LibriCore{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-shield-shaded text-warning me-2"></i>Administrator Dashboard</h2>
+        <p class="text-muted mb-0">System performance, active checkouts, overdue tracking, and inventory health.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.add_book') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Add New Book
+        </a>
+        <a href="{{ url_for('admin.settings') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-sliders me-1"></i>Settings
+        </a>
+    </div>
+</div>
+
+<!-- Primary Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-primary p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white-50 small text-uppercase fw-bold">Registered Students</h6>
+                    <h3 class="fw-bold mb-0">{{ total_users }}</h3>
+                </div>
+                <i class="bi bi-people stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-info text-white p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white-50 small text-uppercase fw-bold">Catalogue Titles</h6>
+                    <h3 class="fw-bold mb-0">{{ total_books }} ({{ total_available_copies }}/{{ total_copies }} Copies)</h3>
+                </div>
+                <i class="bi bi-journals stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card {% if overdue_loans_count > 0 %}bg-danger{% else %}bg-success{% endif %} p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white-50 small text-uppercase fw-bold">Active / Overdue</h6>
+                    <h3 class="fw-bold mb-0">{{ active_loans_count }} / {{ overdue_loans_count }}</h3>
+                </div>
+                <i class="bi bi-alarm stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-warning text-dark p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-dark-50 small text-uppercase fw-bold">Total Fines Due</h6>
+                    <h3 class="fw-bold mb-0">₹{{ "%.2f"|format(total_outstanding_fines) }}</h3>
+                </div>
+                <i class="bi bi-cash-stack stat-icon"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recent Transactions -->
+    <div class="col-lg-8">
+        <div class="card custom-card">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-arrow-left-right me-2"></i>Recent System Loans</h5>
+                <a href="{{ url_for('admin.manage_loans') }}" class="btn btn-sm btn-outline-primary">View All &rarr;</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Book</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loan in recent_loans %}
+                            <tr>
+                                <td class="fw-semibold">{{ loan.user.name }}</td>
+                                <td>{{ loan.book.title }}</td>
+                                <td>{{ loan.issue_date.strftime("%d %b %Y") }}</td>
+                                <td>
+                                    <span class="{% if loan.is_overdue %}text-danger fw-bold{% endif %}">
+                                        {{ loan.due_date.strftime("%d %b %Y") }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if loan.status == 'returned' %}
+                                        <span class="badge badge-returned">Returned</span>
+                                    {% elif loan.is_overdue %}
+                                        <span class="badge badge-overdue">Overdue</span>
+                                    {% else %}
+                                        <span class="badge badge-issued">Active</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No loans recorded yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Most Borrowed Books -->
+    <div class="col-lg-4">
+        <div class="card custom-card">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="fw-bold mb-0"><i class="bi bi-trophy text-warning me-2"></i>Most Borrowed Books</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for book, count in most_borrowed %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <span class="fw-semibold d-block text-dark">{{ book.title }}</span>
+                            <small class="text-muted">{{ book.author }}</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ count }} loans</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted text-center py-4">No borrow records yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

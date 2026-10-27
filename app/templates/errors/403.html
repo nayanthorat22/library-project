@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Access Denied - 403{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center text-center py-5">
+    <div class="col-md-6">
+        <i class="bi bi-shield-x text-danger display-1 mb-3"></i>
+        <h1 class="fw-bold">403 - Forbidden</h1>
+        <p class="lead text-muted mb-4">You do not have administrative permission to view or modify this page.</p>
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary px-4">Return Home</a>
+    </div>
+</div>
+{% endblock %}

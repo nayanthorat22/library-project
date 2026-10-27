@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Book Catalog - LibriCore{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col-md-6">
+        <h2 class="fw-bold mb-1"><i class="bi bi-journal-bookmark text-primary me-2"></i>Library Catalog</h2>
+        <p class="text-muted mb-0">Search, filter, and discover books across disciplines</p>
+    </div>
+</div>
+
+<!-- Search and Filter Form -->
+<div class="card custom-card p-3 mb-4">
+    <form method="GET" action="{{ url_for('main.catalog') }}" class="row g-3">
+        <div class="col-md-5">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by title, author, or ISBN...">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select name="category" class="form-select">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="availability" class="form-select">
+                <option value="">All Statuses</option>
+                <option value="available" {% if availability == 'available' %}selected{% endif %}>In Stock</option>
+                <option value="out_of_stock" {% if availability == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter me-1"></i>Filter</button>
+            <a href="{{ url_for('main.catalog') }}" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Book Grid -->
+<div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
+    {% for book in books %}
+    <div class="col">
+        <div class="card custom-card h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge bg-secondary-subtle text-secondary border">{{ book.category }}</span>
+                    {% if book.is_available %}
+                        <span class="badge badge-available">In Stock ({{ book.available_copies }})</span>
+                    {% else %}
+                        <span class="badge badge-out-of-stock">Out of Stock</span>
+                    {% endif %}
+                </div>
+                <h5 class="card-title fw-bold text-primary">{{ book.title }}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">by {{ book.author }}</h6>
+                <p class="card-text small text-muted flex-grow-1">
+                    {{ book.description or "No description provided." }}
+                </p>
+                <div class="border-top pt-3 mt-auto d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Year: {{ book.publication_year or 'N/A' }}</small>
+                    <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye me-1"></i>View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <div class="p-4 bg-white rounded-3 shadow-sm">
+            <i class="bi bi-search text-muted fs-1 mb-3"></i>
+            <h4 class="fw-bold">No books matched your criteria</h4>
+            <p class="text-muted">Try adjusting your search terms or clearing your filters.</p>
+            <a href="{{ url_for('main.catalog') }}" class="btn btn-primary btn-sm">Clear Search</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<nav aria-label="Catalog pagination">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('main.catalog', page=pagination.prev_num, q=query, category=category, availability=availability) }}">&laquo; Prev</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo; Prev</span></li>
+        {% endif %}
+
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+                {% if p == pagination.page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('main.catalog', page=p, q=query, category=category, availability=availability) }}">{{ p }}</a></li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('main.catalog', page=pagination.next_num, q=query, category=category, availability=availability) }}">Next &raquo;</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">Next &raquo;</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
